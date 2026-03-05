@@ -5,13 +5,7 @@ import { GitBranch, Clock, Code2, User, ChevronRight, Search } from "lucide-reac
 import { FunctionCard } from "@/components/ui/card";
 import { AnimatedBadge } from "@/components/ui/badge";
 import { VortexButton } from "@/components/ui/button";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Sector,
-} from "recharts";
+import { PieChart, Pie, Cell, Tooltip } from "recharts";
 
 export interface Contributor {
   name: string;
@@ -104,22 +98,6 @@ function ContributorRow({ contributor, rank, max, onClick }: {
         {contributor.functions} fn
       </span>
     </div>
-  );
-}
-
-function ActiveShape(props: any) {
-  const { cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill } = props;
-  return (
-    <g>
-      <Sector
-        cx={cx} cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={outerRadius + 4}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-      />
-    </g>
   );
 }
 

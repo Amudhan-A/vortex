@@ -3,32 +3,24 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RepoDashboard } from "@/components/dashboard/RepoDashboard";
-import { StatsPanel } from "@/components/dashboard/StatsPanel";
-import { listFunctions, getContributors, getCommitFrequency } from "@/services/api";
+import { listFunctions, getContributors } from "@/services/api";
 import type { Contributor } from "@/services/api";
-
 
 const REPO = "D:\\vortex\\project\\backend";
 
-
-
-
 export default function DashboardPage() {
-  const router = useRouter();
+  const router = useRouter();  // ← inside component
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [functions,    setFunctions]    = useState<any[]>([]);
   const [loading,      setLoading]      = useState(true);
-  const [commitFrequency, setCommitFrequency] = useState<{ date: string; commits: number }[]>([]);
-  
+
   const loadData = () => {
     setLoading(true);
     Promise.all([
       getContributors(REPO),
       listFunctions(REPO),
-      getCommitFrequency(REPO),  
-    ]).then(([contribs, fns, freq]) => {
+    ]).then(([contribs, fns]) => {
       setContributors(contribs);
-      setCommitFrequency(freq)
       setFunctions(fns.map(f => ({
         functionName: f.function_name,
         filepath:     f.filepath,
@@ -60,30 +52,24 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex gap-6 p-6 h-full">
-      <div className="flex-1 overflow-y-auto">
-        <RepoDashboard
-          repoName={REPO}
-          branch="main"
-          lastAnalyzed={new Date().toISOString()}
-          totalFunctions={functions.length}
-          contributors={contributors}
-          recentFunctions={functions.slice(0, 10)}
-          ownership={ownershipStats}  // ← add this
-
-          onInspect={(fn) => {
-            const match = functions.find(f => f.functionName === fn);
-            const filepath = match?.filepath ?? "";
-            router.push(`/inspect?fn=${encodeURIComponent(fn)}&filepath=${encodeURIComponent(filepath)}`);
-          }}
-          onViewAll={() => router.push("/search")}
-          onContributorClick={(name) => router.push(`/search?author=${encodeURIComponent(name)}`)}
-
-          // ← three new lines
-          onGoToInspect={() => router.push("/inspect")}
-        />
-      </div>
-      
+    <div className="p-6 h-full overflow-y-auto">
+      <RepoDashboard
+        repoName={REPO}
+        branch="main"
+        lastAnalyzed={new Date().toISOString()}
+        totalFunctions={functions.length}
+        contributors={contributors}
+        recentFunctions={functions.slice(0, 10)}
+        ownership={ownershipStats}
+        onInspect={(fn) => {
+          const match = functions.find(f => f.functionName === fn);
+          const filepath = match?.filepath ?? "";
+          router.push(`/inspect?fn=${encodeURIComponent(fn)}&filepath=${encodeURIComponent(filepath)}`);
+        }}
+        onViewAll={() => router.push("/search")}
+        onContributorClick={(name) => router.push(`/search?author=${encodeURIComponent(name)}`)}
+        onGoToInspect={() => router.push("/inspect")}
+      />
     </div>
   );
 }
