@@ -1,150 +1,64 @@
-<<<<<<< HEAD
+// app/inspect/page.tsx
 "use client";
-
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FunctionPanel } from "@/components/inspector/FunctionPanel";
+import { BlastRadiusList } from "@/components/inspector/BlastRadiusList";
+import { OwnerCard } from "@/components/inspector/OwnerCard";
+import { RepoSetupForm } from "@/components/ui/RepoSetupForm";
+import { useExplain } from "@/hooks/useExplain";
+import { useRepo } from "@/context/RepoContext";
 import { useAnalyze } from "@/hooks/useAnalyze";
 
 export default function InspectPage() {
+  const searchParams  = useSearchParams();
+  const fnName  = searchParams.get("fn") ?? "";
+  const repo    = searchParams.get("repo") ?? "";
 
-  const [repoPath, setRepoPath] = useState("");
-  const [filePath, setFilePath] = useState("");
-  const [functionName, setFunctionName] = useState("");
-  const [owner, setOwner] = useState("");
-  const [repoName, setRepoName] = useState("");
+  const { isConfigured } = useRepo();
+  const { explain, loading: explainLoading } = useExplain();
+  const { analyze } = useAnalyze();
 
-  const { analyze, loading, data, error } = useAnalyze();
+  const [data, setData] = useState<any>(null);
 
-  const handleAnalyze = async () => {
-
-    await analyze({
-      repo_path: repoPath,
-      filepath: filePath,
-      function_name: functionName,
-      owner: owner,
-      repo_name: repoName
-    });
-
-  };
+  useEffect(() => {
+    if (!isConfigured || !fnName) return;
+    // filepath comes from the URL or you can load from listFunctions first
+    const filepath = searchParams.get("filepath") ?? "";
+    Promise.all([
+      explain(filepath, fnName),
+      analyze(filepath, fnName),
+    ]).then(([decisionLog, analysis]) => setData({ decisionLog, analysis }));
+  }, [isConfigured, fnName]);
 
   return (
-
-    <div className="p-8 space-y-6">
-
-      <h1 className="text-3xl font-semibold">
-        Function Inspector
-      </h1>
-
-      <div className="space-y-4 max-w-xl">
-
-        <input
-          className="w-full p-2 rounded bg-[#2d2d2d] border border-[#3c3c3c]"
-          placeholder="Repository Path"
-          value={repoPath}
-          onChange={(e) => setRepoPath(e.target.value)}
-        />
-
-        <input
-          className="w-full p-2 rounded bg-[#2d2d2d] border border-[#3c3c3c]"
-          placeholder="File Path"
-          value={filePath}
-          onChange={(e) => setFilePath(e.target.value)}
-        />
-
-        <input
-          className="w-full p-2 rounded bg-[#2d2d2d] border border-[#3c3c3c]"
-          placeholder="Function Name"
-          value={functionName}
-          onChange={(e) => setFunctionName(e.target.value)}
-        />
-
-        <input
-          className="w-full p-2 rounded bg-[#2d2d2d] border border-[#3c3c3c]"
-          placeholder="Repo Owner (GitHub username)"
-          value={owner}
-          onChange={(e) => setOwner(e.target.value)}
-        />
-
-        <input
-          className="w-full p-2 rounded bg-[#2d2d2d] border border-[#3c3c3c]"
-          placeholder="Repository Name"
-          value={repoName}
-          onChange={(e) => setRepoName(e.target.value)}
-        />
-
-        <button
-          onClick={handleAnalyze}
-          className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500"
-        >
-          Analyze
-        </button>
-
-      </div>
-
-      {loading && (
-        <p className="text-gray-400">
-          Analyzing repository...
-        </p>
-      )}
-
-      {error && (
-        <p className="text-red-400">
-          {error}
-        </p>
-      )}
-
+    <div className="p-6 h-full flex gap-4">
+      <RepoSetupForm />
+      {explainLoading && <p className="font-mono text-xs text-[#6b6b6b]">analyzing...</p>}
       {data && (
-
-        <div className="mt-8 space-y-6">
-
-          <div>
-            <h2 className="text-xl font-semibold">Callers</h2>
-            <ul className="list-disc pl-6">
-              {data.analysis.callers?.map((f: string) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold">Callees</h2>
-            <ul className="list-disc pl-6">
-              {data.analysis.callees?.map((f: string) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold">Blast Radius</h2>
-            <ul className="list-disc pl-6">
-              {data.analysis.blast_radius?.map((f: string) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold">Owner</h2>
-            <p>{data.ownership.primary_owner}</p>
-            <p className="text-sm text-gray-400">
-              Confidence: {data.ownership.confidence}
-            </p>
-          </div>
-
-        </div>
-
+        <>
+          <FunctionPanel
+            functionName={fnName}
+            filepath={searchParams.get("filepath") ?? ""}
+            primaryOwner={data.decisionLog?.ownership?.primary_owner ?? "unknown"}
+            confidence={data.decisionLog?.ownership?.confidence ?? 0}
+            generatedAt={data.decisionLog?.decision_log?.generated_at ?? new Date().toISOString()}
+            whyItExists={data.decisionLog?.decision_log?.why_it_exists ?? ""}
+            keyDecisions={data.decisionLog?.decision_log?.key_decisions ?? []}
+            linkedIssues={(data.decisionLog?.decision_log?.linked_issues ?? []).map((id: string) => ({
+              id, title: id, type: id.toLowerCase().startsWith("pr") ? "pr" : "issue"
+            }))}
+            callers={data.analysis?.analysis?.callers ?? []}
+            callees={data.analysis?.analysis?.callees ?? []}
+          />
+          <BlastRadiusList
+            functionName={fnName}
+            entries={(data.analysis?.analysis?.blast_radius ?? []).map((fn: string) => ({
+              functionName: fn, filepath: "", severity: "direct" as const
+            }))}
+          />
+        </>
       )}
-
-    </div>
-
-  );
-
-=======
-export default function InspectPage() {
-  return (
-    <div className="p-8">
-      <p className="font-mono text-xs text-[#6b6b6b]">inspector coming soon</p>
     </div>
   );
->>>>>>> c47344fd60c41b96008d561978d3756a9e94efb3
 }

@@ -2,42 +2,39 @@
 
 import { AskPanel } from "@/components/search/AskPanel";
 import type { AskResult } from "@/components/search/AskPanel";
-
-// Mock search — replace with real API call later
-const mockSearch = async (query: string): Promise<AskResult[]> => {
-  await new Promise((r) => setTimeout(r, 1400)); // simulate latency
-
-  if (query.toLowerCase().includes("no result")) return [];
-
-  return [
-    {
-      functionName: "validate_user",
-      filepath: "src/auth.py",
-      repo: "acme/backend",
-      snippet: "Handles JWT validation introduced in PR #112. Switched from sessions to JWT for load balanced environments.",
-      owner: "alice",
-    },
-    {
-      functionName: "authenticate",
-      filepath: "middleware.py",
-      repo: "acme/backend",
-      snippet: "Middleware that calls validate_user on every protected route before passing to the handler.",
-      owner: "alice",
-    },
-    {
-      functionName: "refresh_token",
-      filepath: "src/auth.py",
-      repo: "acme/backend",
-      snippet: "Reissues a JWT when the current token is close to expiry, calling validate_user internally.",
-      owner: "bob",
-    },
-  ];
-};
+import { useRepo } from "@/context/RepoContext";
+import { listFunctions, getFunction } from "@/services/api";
 
 export default function TestPage() {
+  const { config } = useRepo();
+
+  const realSearch = async (query: string): Promise<AskResult[]> => {
+    if (!config) return [];
+
+    const { functions } = await listFunctions(config.repoName);
+
+    const matches = (functions as any[]).filter((f) =>
+      f.function_name.toLowerCase().includes(query.toLowerCase())
+    );
+
+    const detailed = await Promise.all(
+      matches.slice(0, 6).map((f) =>
+        getFunction(config.repoName, f.filepath, f.function_name)
+      )
+    );
+
+    return detailed.filter(Boolean).map((d: any) => ({
+      functionName: d.function_name,
+      filepath: d.filepath,
+      repo: d.repo,
+      snippet: d.decision_log?.why_it_exists ?? "No analysis yet.",
+      owner: d.ownership?.primary_owner ?? "unknown",
+    }));
+  };
+
   return (
     <div className="h-screen">
-      <AskPanel onSearch={mockSearch} />
+      <AskPanel onSearch={realSearch} />
     </div>
   );
 }

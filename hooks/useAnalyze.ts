@@ -1,47 +1,30 @@
-import { useState } from "react"
-import { analyzeFunction } from "@/services/api"
-import {
-  AnalyzeRequest,
-  AnalyzeResponse
-} from "@/types/apiTypes"
+// hooks/useAnalyze.ts
+import { useState } from "react";
+import { analyzeFunction, listFunctions } from "@/services/api";
+import { useRepo } from "@/context/RepoContext";
 
 export function useAnalyze() {
+  const { config } = useRepo();
+  const [loading, setLoading] = useState(false);
+  const [error, setError]     = useState<string | null>(null);
 
-  const [data, setData] = useState<AnalyzeResponse | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  async function analyze(payload: AnalyzeRequest) {
-
+  const analyze = async (filepath: string, functionName: string) => {
+    if (!config) throw new Error("No repo configured");
+    setLoading(true); setError(null);
     try {
-
-      setLoading(true)
-      setError(null)
-
-      const result = await analyzeFunction(payload)
-
-      setData(result)
-
-      return result
-
-    } catch (err) {
-
-      console.error(err)
-      setError("Failed to analyze function")
-
+      return await analyzeFunction(config, filepath, functionName);
+    } catch (e: any) {
+      setError(e.message); return null;
     } finally {
-
-      setLoading(false)
-
+      setLoading(false);
     }
+  };
 
-  }
+  const getFunctions = async () => {
+    if (!config) return [];
+    const data = await listFunctions(config.repoName);
+    return data.functions ?? [];
+  };
 
-  return {
-    analyze,
-    data,
-    loading,
-    error
-  }
-
+  return { analyze, getFunctions, loading, error };
 }
