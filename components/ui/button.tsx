@@ -14,7 +14,7 @@ type ButtonVariant =
 type ButtonSize = "sm" | "md" | "lg"
 
 interface VortexButtonProps {
-  children: ReactNode;
+  children?: ReactNode;
   onClick?: (e: MouseEvent<HTMLButtonElement>) => void;
   variant?: ButtonVariant;
   size?: ButtonSize;
@@ -179,7 +179,7 @@ export function VortexButton({
 
         {/* Content */}
         {icon && iconPosition === "left" && <span className="relative z-10 flex items-center">{icon}</span>}
-        <span className="relative z-10">{children}</span>
+        {children && <span className="relative z-10">{children}</span>}
         {icon && iconPosition === "right" && <span className="relative z-10 flex items-center">{icon}</span>}
       </button>
     </>
