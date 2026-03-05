@@ -117,6 +117,12 @@ export function RepoDashboard({
   onInspect,
 }: RepoDashboardProps) {
   const maxCommits = Math.max(...contributors.map((c) => c.commits), 1);
+  const [analyzedDate, setAnalyzedDate] = React.useState("");
+  React.useEffect(() => {
+    const formatted = new Date(lastAnalyzed).toLocaleDateString();
+    setAnalyzedDate(formatted);
+  }, [lastAnalyzed]);
+  
 
   return (
     <div className="flex flex-col gap-6 p-6 h-full overflow-y-auto">
@@ -136,7 +142,7 @@ export function RepoDashboard({
             <div className="flex items-center gap-1">
               <Clock size={11} className="text-[#6b6b6b]" />
               <span className="font-mono text-[10px] text-[#6b6b6b]">
-                analyzed {new Date(lastAnalyzed).toLocaleDateString()}
+                {/* analyzed {analyzedDate} */}
               </span>
             </div>
           </div>

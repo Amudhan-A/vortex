@@ -207,7 +207,7 @@ export function FunctionCard({
         <div className="flex items-center gap-1">
           <Clock size={11} className="text-[#6b6b6b]" />
           <span className="font-mono text-[10px] text-[#6b6b6b]">
-            {new Date(generatedAt).toLocaleDateString()}
+            {new Date(generatedAt).toISOString().slice(0, 10)}
           </span>
         </div>
       </div>
