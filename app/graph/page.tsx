@@ -20,8 +20,10 @@ export default function GraphPage() {
   useEffect(() => {
     async function loadGraph() {
 
+      const repoPath = "D:\\vortex\\project\\backend";
+
       const res = await fetch(
-        "http://localhost:8000/repo-map?repo=git-blame-app-backend"
+        `http://localhost:8000/repo-map?repo=${encodeURIComponent(repoPath)}`
       );
 
       const data = await res.json();
