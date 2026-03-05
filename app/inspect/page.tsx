@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 "use client";
 
 import { useState } from "react";
@@ -138,4 +139,12 @@ export default function InspectPage() {
 
   );
 
+=======
+export default function InspectPage() {
+  return (
+    <div className="p-8">
+      <p className="font-mono text-xs text-[#6b6b6b]">inspector coming soon</p>
+    </div>
+  );
+>>>>>>> c47344fd60c41b96008d561978d3756a9e94efb3
 }
