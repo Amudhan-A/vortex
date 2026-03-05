@@ -1,80 +1,37 @@
 "use client";
 
-import { RepoDashboard } from "@/components/dashboard/RepoDashboard";
-import { StatsPanel } from "@/components/dashboard/StatsPanel";
-import { useRouter } from "next/navigation";
-
-const mockRepo = {
-  repoName: "acme/backend",
-  branch: "main",
-  lastAnalyzed: "2026-03-05T00:00:00Z",
-  totalFunctions: 142,
-  contributors: [
-    { name: "alice",   commits: 87, functions: 34 },
-    { name: "bob",     commits: 54, functions: 21 },
-    { name: "charlie", commits: 31, functions: 18 },
-    { name: "diana",   commits: 19, functions: 9  },
-    { name: "eve",     commits: 8,  functions: 4  },
-  ],
-  recentFunctions: [
-    {
-      functionName: "validate_user",
-      filepath: "src/auth.py",
-      primaryOwner: "alice",
-      whyItExists: "Handles JWT validation introduced in PR #112.",
-      blastRadius: ["auth.py:login", "middleware.py:authenticate"],
-      generatedAt: "2026-03-05T00:00:00Z",
-    },
-    {
-      functionName: "compute_ownership",
-      filepath: "analyzer/ownership.py",
-      primaryOwner: "bob",
-      whyItExists: "Determines primary ownership based on commit frequency.",
-      blastRadius: ["analyzer/analyze.py"],
-      generatedAt: "2026-03-04T00:00:00Z",
-    },
-    {
-      functionName: "build_ast_graph",
-      filepath: "analyzer/ast_graph.py",
-      primaryOwner: "charlie",
-      whyItExists: "Parses Python source and builds a call graph.",
-      blastRadius: ["analyzer/blast_radius.py"],
-      generatedAt: "2026-03-03T00:00:00Z",
-    },
-  ],
-};
-
-const mockStats = {
-  commitFrequency: [
-    { date: "Feb 3",  commits: 4  },
-    { date: "Feb 10", commits: 9  },
-    { date: "Feb 17", commits: 6  },
-    { date: "Feb 24", commits: 14 },
-    { date: "Mar 3",  commits: 11 },
-    { date: "Mar 5",  commits: 7  },
-  ],
-  ownership: [
-    { name: "alice",   functions: 34 },
-    { name: "bob",     functions: 21 },
-    { name: "charlie", functions: 18 },
-    { name: "diana",   functions: 9  },
-    { name: "eve",     functions: 4  },
-  ],
-};
+import { DependencyGraph } from "@/components/graph/DependencyGraph";
 
 export default function TestPage() {
-  const router = useRouter();
   return (
-    <div className="flex gap-6 p-6 h-full">
-      <div className="flex-1 overflow-y-auto">
-        <RepoDashboard
-          {...mockRepo}
-          onInspect={(fn) => router.push(`/inspect?fn=${fn}`)}
-        />
-      </div>
-      <div className="w-72 shrink-0">
-        <StatsPanel {...mockStats} />
-      </div>
+    <div className="p-6 h-screen">
+      <DependencyGraph
+        rootId="validate_user"
+        nodes={[
+          { id: "validate_user",    label: "validate_user",    filepath: "src/auth.py",         type: "root"     },
+          { id: "login",            label: "login",            filepath: "src/auth.py",         type: "direct"   },
+          { id: "authenticate",     label: "authenticate",     filepath: "middleware.py",        type: "direct"   },
+          { id: "refresh_token",    label: "refresh_token",    filepath: "src/auth.py",         type: "direct"   },
+          { id: "protected_route",  label: "protected_route",  filepath: "api/routes.py",        type: "indirect" },
+          { id: "admin_only",       label: "admin_only",       filepath: "api/routes.py",        type: "indirect" },
+          { id: "get_current_user", label: "get_current_user", filepath: "src/users.py",         type: "indirect" },
+          { id: "jwt.decode",       label: "jwt.decode",       filepath: "lib/jwt.py",           type: "callee"   },
+          { id: "cache.get",        label: "cache.get",        filepath: "lib/cache.py",         type: "callee"   },
+          { id: "cache.set",        label: "cache.set",        filepath: "lib/cache.py",         type: "callee"   },
+        ]}
+        edges={[
+          { source: "validate_user",    target: "jwt.decode",       animated: true  },
+          { source: "validate_user",    target: "cache.get",        animated: true  },
+          { source: "validate_user",    target: "cache.set",        animated: true  },
+          { source: "login",            target: "validate_user",    animated: true  },
+          { source: "authenticate",     target: "validate_user",    animated: true  },
+          { source: "refresh_token",    target: "validate_user",    animated: true  },
+          { source: "protected_route",  target: "authenticate",     animated: true  },
+          { source: "admin_only",       target: "authenticate",     animated: true  },
+          { source: "get_current_user", target: "validate_user",    animated: true  },
+        ]}
+        onNodeClick={(node) => console.log("clicked", node.id)}
+      />
     </div>
   );
 }
