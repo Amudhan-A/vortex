@@ -1,37 +1,43 @@
 "use client";
 
-import { DependencyGraph } from "@/components/graph/DependencyGraph";
+import { AskPanel } from "@/components/search/AskPanel";
+import type { AskResult } from "@/components/search/AskPanel";
+
+// Mock search — replace with real API call later
+const mockSearch = async (query: string): Promise<AskResult[]> => {
+  await new Promise((r) => setTimeout(r, 1400)); // simulate latency
+
+  if (query.toLowerCase().includes("no result")) return [];
+
+  return [
+    {
+      functionName: "validate_user",
+      filepath: "src/auth.py",
+      repo: "acme/backend",
+      snippet: "Handles JWT validation introduced in PR #112. Switched from sessions to JWT for load balanced environments.",
+      owner: "alice",
+    },
+    {
+      functionName: "authenticate",
+      filepath: "middleware.py",
+      repo: "acme/backend",
+      snippet: "Middleware that calls validate_user on every protected route before passing to the handler.",
+      owner: "alice",
+    },
+    {
+      functionName: "refresh_token",
+      filepath: "src/auth.py",
+      repo: "acme/backend",
+      snippet: "Reissues a JWT when the current token is close to expiry, calling validate_user internally.",
+      owner: "bob",
+    },
+  ];
+};
 
 export default function TestPage() {
   return (
-    <div className="p-6 h-screen">
-      <DependencyGraph
-        rootId="validate_user"
-        nodes={[
-          { id: "validate_user",    label: "validate_user",    filepath: "src/auth.py",         type: "root"     },
-          { id: "login",            label: "login",            filepath: "src/auth.py",         type: "direct"   },
-          { id: "authenticate",     label: "authenticate",     filepath: "middleware.py",        type: "direct"   },
-          { id: "refresh_token",    label: "refresh_token",    filepath: "src/auth.py",         type: "direct"   },
-          { id: "protected_route",  label: "protected_route",  filepath: "api/routes.py",        type: "indirect" },
-          { id: "admin_only",       label: "admin_only",       filepath: "api/routes.py",        type: "indirect" },
-          { id: "get_current_user", label: "get_current_user", filepath: "src/users.py",         type: "indirect" },
-          { id: "jwt.decode",       label: "jwt.decode",       filepath: "lib/jwt.py",           type: "callee"   },
-          { id: "cache.get",        label: "cache.get",        filepath: "lib/cache.py",         type: "callee"   },
-          { id: "cache.set",        label: "cache.set",        filepath: "lib/cache.py",         type: "callee"   },
-        ]}
-        edges={[
-          { source: "validate_user",    target: "jwt.decode",       animated: true  },
-          { source: "validate_user",    target: "cache.get",        animated: true  },
-          { source: "validate_user",    target: "cache.set",        animated: true  },
-          { source: "login",            target: "validate_user",    animated: true  },
-          { source: "authenticate",     target: "validate_user",    animated: true  },
-          { source: "refresh_token",    target: "validate_user",    animated: true  },
-          { source: "protected_route",  target: "authenticate",     animated: true  },
-          { source: "admin_only",       target: "authenticate",     animated: true  },
-          { source: "get_current_user", target: "validate_user",    animated: true  },
-        ]}
-        onNodeClick={(node) => console.log("clicked", node.id)}
-      />
+    <div className="h-screen">
+      <AskPanel onSearch={mockSearch} />
     </div>
   );
 }
