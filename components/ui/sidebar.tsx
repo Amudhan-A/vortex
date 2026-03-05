@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
@@ -232,6 +233,12 @@ function IconRail({
   activeSection: string;
   onSectionChange: (s: string) => void;
 }) {
+  const router = useRouter();
+
+  const handleNav = (item: NavItem) => {
+    onSectionChange(item.id);
+    router.push(item.href);
+  };
   return (
     <aside className="bg-[#252526] flex flex-col items-center py-3 px-2 w-14 border-r border-[#3e3e42] h-screen">
       {/* Logo */}
@@ -245,7 +252,7 @@ function IconRail({
           <IconNavButton
             key={item.id}
             isActive={activeSection === item.id}
-            onClick={() => onSectionChange(item.id)}
+            onClick={() => handleNav(item)}
             title={item.label}
           >
             {item.icon}
@@ -259,7 +266,7 @@ function IconRail({
       <div className="flex flex-col gap-1 items-center">
         <IconNavButton
           isActive={activeSection === "settings"}
-          onClick={() => onSectionChange("settings")}
+          onClick={() => { onSectionChange("settings"); router.push("/settings"); }}
           title="Settings"
         >
           <Settings size={16} />
