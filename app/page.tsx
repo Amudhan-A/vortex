@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { RepoDashboard } from "@/components/dashboard/RepoDashboard";
 import { listFunctions, getContributors } from "@/services/api";
 import type { Contributor } from "@/services/api";
+import { getSavedRepo } from "@/lib/config";
 
-const REPO = "D:\\vortex\\project\\backend";
+
+const REPO = getSavedRepo() ?? "";
 
 export default function DashboardPage() {
   const router = useRouter();  // ← inside component

@@ -16,6 +16,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
+import { clearRepo } from "@/lib/config";
 
 const softSpringEasing = "cubic-bezier(0.25, 1.1, 0.4, 1)";
 
@@ -291,6 +292,8 @@ function DetailSidebar({
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(["Function Analysis", "Views", "Query", "Exports"]));
   const content = getSidebarContent(activeSection);
 
+  const router = useRouter();
+
   const toggleSection = (title: string) => {
     setExpandedSections((prev) => {
       const next = new Set(prev);
@@ -369,11 +372,18 @@ function DetailSidebar({
       {/* Footer */}
       <div className="mt-auto pt-3 border-t border-[#3e3e42] flex items-center gap-2">
         <AvatarCircle />
-        <div className="flex flex-col">
-          <span className="font-mono text-xs text-[#d4d4d4]">dev</span>
-          <span className="font-mono text-[10px] text-[#6b6b6b]">vortex</span>
-        </div>
-      </div>
+        <div className="flex flex-col flex-1">
+    <span className="font-mono text-xs text-[#d4d4d4]">dev</span>
+    <span className="font-mono text-[10px] text-[#6b6b6b]">vortex</span>
+  </div>
+  <button
+    onClick={() => { clearRepo(); router.push("/setup"); }}
+    className="font-mono text-[10px] text-[#6b6b6b] hover:text-[#f48771] transition-colors"
+    title="Change repository"
+  >
+    change repo
+  </button>
+  </div>        {/* ← this was missing */}
     </aside>
   );
 }
