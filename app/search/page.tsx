@@ -1,43 +1,32 @@
+// app/search/page.tsx
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { getSavedRepo } from "@/lib/config";
-import { searchFunctions, SearchResult } from "@/services/api";
-import { Search, Zap, ArrowRight } from "lucide-react";
+import { useAsk } from "@/hooks/useAsk";
+import { Search, Zap, ArrowRight, Loader2, Code2, User } from "lucide-react";
 
 const SUGGESTIONS = [
-  "analyze",
-  "compute",
-  "build",
-  "fetch",
-  "mine",
+  "Who owns the authentication logic?",
+  "What breaks if analyze changes?",
+  "Why does compute_ownership exist?",
+  "What does build_ast_graph call?",
+  "Which functions have the highest blast radius?",
 ];
 
 export default function SearchPage() {
   const router = useRouter();
   const REPO = getSavedRepo() ?? "";
+  const { ask, loading, error, result } = useAsk();
 
-  console.log("REPO:", REPO);
-
-
-  const [query, setQuery]     = useState("");
-  const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [query, setQuery]       = useState("");
   const [lastQuery, setLastQuery] = useState("");
 
   const handleSearch = async (q: string) => {
     if (!q.trim()) return;
-    setLoading(true);
     setLastQuery(q.trim());
-    try {
-      const data = await searchFunctions(REPO, q.trim());
-      setResults(data);
-    } catch {
-      setResults([]);
-    } finally {
-      setLoading(false);
-    }
+    await ask(REPO, q.trim());
   };
 
   return (
@@ -52,7 +41,7 @@ export default function SearchPage() {
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === "Enter" && handleSearch(query)}
-            placeholder="Search functions, files, or owners..."
+            placeholder="Ask anything about your codebase..."
             className="flex-1 bg-transparent outline-none font-mono text-sm text-[#d4d4d4] placeholder:text-[#6b6b6b]"
             autoFocus
           />
@@ -61,14 +50,14 @@ export default function SearchPage() {
               onClick={() => handleSearch(query)}
               className="font-mono text-[10px] text-[#4ec9b0] hover:text-white transition-colors"
             >
-              search
+              ask
             </button>
           )}
         </div>
 
-        {/* Suggestions */}
-        {!results && (
-          <div className="flex items-center gap-2 mt-3 flex-wrap">
+        {/* Suggestions — only show before first search */}
+        {!result && !loading && (
+          <div className="flex items-center gap-2 mt-3 flex-wrap max-w-2xl">
             <span className="font-mono text-[10px] text-[#6b6b6b]">try:</span>
             {SUGGESTIONS.map(s => (
               <button
@@ -84,50 +73,101 @@ export default function SearchPage() {
       </div>
 
       {/* Results */}
-      <div className="flex-1 overflow-y-auto px-6 py-4">
+      <div className="flex-1 overflow-y-auto px-6 py-4 max-w-3xl">
 
+        {/* Loading */}
         {loading && (
-          <div className="flex flex-col gap-2">
-            {[1,2,3].map(n => (
-              <div key={n} className="h-16 bg-[#252526] border border-[#3e3e42] rounded-sm animate-pulse" />
-            ))}
+          <div className="flex items-center gap-2 py-4">
+            <Loader2 size={14} className="text-[#4ec9b0] animate-spin" />
+            <span className="font-mono text-xs text-[#6b6b6b]">
+              analyzing codebase...
+            </span>
           </div>
         )}
 
-        {!loading && results === null && (
+        {/* Error */}
+        {error && (
+          <p className="font-mono text-xs text-[#f48771]">Error: {error}</p>
+        )}
+
+        {/* Answer */}
+        {result && !loading && (
+          <div className="flex flex-col gap-6">
+
+            {/* Question echo */}
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] text-[#6b6b6b]">Q:</span>
+              <span className="font-mono text-sm text-[#d4d4d4]">{lastQuery}</span>
+            </div>
+
+            {/* LLM Answer */}
+            <div className="bg-[#252526] border border-[#4ec9b0]/20 rounded-sm p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Zap size={12} className="text-[#4ec9b0]" />
+                <span className="font-mono text-[10px] uppercase tracking-widest text-[#4ec9b0]">
+                  answer
+                </span>
+              </div>
+              <p className="font-mono text-sm text-[#d4d4d4] leading-relaxed whitespace-pre-wrap">
+                {result.answer}
+              </p>
+            </div>
+
+            {/* Sources */}
+            {result.sources.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <span className="font-mono text-[10px] uppercase tracking-widest text-[#6b6b6b]">
+                  context pulled from
+                </span>
+                <div className="flex flex-col gap-2">
+                  {result.sources.map((src, i) => (
+                    <button
+                      key={i}
+                      onClick={() => router.push(
+                        `/inspect?fn=${encodeURIComponent(src.function_name)}&filepath=${encodeURIComponent(src.filepath)}`
+                      )}
+                      className="flex items-center gap-3 bg-[#252526] border border-[#3e3e42] rounded-sm px-4 py-3 hover:border-[#4ec9b0]/40 transition-colors text-left group w-full"
+                    >
+                      <Code2 size={12} className="text-[#6b6b6b] shrink-0" />
+                      <div className="flex flex-col flex-1 min-w-0">
+                        <span className="font-mono text-sm text-white">
+                          {src.function_name}
+                        </span>
+                        <span className="font-mono text-[10px] text-[#6b6b6b] truncate">
+                          {src.filepath}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <User size={11} className="text-[#6b6b6b]" />
+                        <span className="font-mono text-[10px] text-[#4ec9b0]">
+                          {src.ownership?.primary_owner ?? "unknown"}
+                        </span>
+                      </div>
+                      <ArrowRight size={12} className="text-[#3e3e42] group-hover:text-[#4ec9b0] transition-colors shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Ask another */}
+            <button
+              onClick={() => { setQuery(""); }}
+              className="font-mono text-[10px] text-[#6b6b6b] hover:text-[#4ec9b0] transition-colors w-fit"
+            >
+              ← ask another question
+            </button>
+
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!result && !loading && !error && (
           <div className="flex flex-col items-center justify-center h-full gap-3 pb-20">
             <Zap size={24} className="text-[#3e3e42]" />
-            <p className="font-mono text-sm text-[#6b6b6b]">Search your codebase</p>
-          </div>
-        )}
-
-        {!loading && results !== null && results.length === 0 && (
-          <p className="font-mono text-sm text-[#6b6b6b]">
-            No results for <span className="text-[#d4d4d4]">"{lastQuery}"</span>
-          </p>
-        )}
-
-        {!loading && results !== null && results.length > 0 && (
-          <div className="flex flex-col gap-2 max-w-2xl">
-            <p className="font-mono text-[10px] text-[#6b6b6b] mb-2">
-              {results.length} results for <span className="text-[#4ec9b0]">"{lastQuery}"</span>
+            <p className="font-mono text-sm text-[#6b6b6b]">
+              Ask anything about your codebase
             </p>
-            {results.map((r, i) => (
-              <button
-                key={i}
-                onClick={() => router.push(`/inspect?fn=${encodeURIComponent(r.function_name)}&filepath=${encodeURIComponent(r.filepath)}`)}
-                className="flex items-center gap-4 bg-[#252526] border border-[#3e3e42] rounded-sm px-4 py-3 hover:border-[#4ec9b0]/40 transition-colors text-left group w-full"
-              >
-                <div className="flex flex-col flex-1 min-w-0">
-                  <span className="font-mono text-sm text-white">{r.function_name}</span>
-                  <span className="font-mono text-[10px] text-[#6b6b6b] truncate">{r.filepath}</span>
-                </div>
-                <span className="font-mono text-[10px] text-[#4ec9b0] shrink-0">
-                  {r.ownership?.primary_owner ?? "unknown"}
-                </span>
-                <ArrowRight size={12} className="text-[#3e3e42] group-hover:text-[#4ec9b0] transition-colors shrink-0" />
-              </button>
-            ))}
           </div>
         )}
 

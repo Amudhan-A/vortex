@@ -151,3 +151,27 @@ export async function searchFunctions(repo: string, query: string): Promise<Sear
   const data = await res.json();
   return data.results;
 }
+
+
+// services/api.ts — add these types and function
+
+export interface AskResponse {
+  answer: string;
+  sources: {
+    function_name: string;
+    filepath: string;
+    ownership: { primary_owner: string; confidence: number };
+  }[];
+}
+
+export async function askCodebase(
+  repo: string,
+  question: string
+): Promise<AskResponse> {
+  const url = new URL(`${BASE}/ask`);
+  url.searchParams.set("repo", repo);
+  url.searchParams.set("question", question);
+  const res = await fetch(url.toString(), { method: "POST" });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
